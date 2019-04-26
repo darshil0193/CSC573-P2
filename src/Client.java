@@ -146,17 +146,20 @@ public class Client
 //            StringBuilder padding = new StringBuilder("0000000000000000");
         } else {
             for(int i=0; i<allPackets.length; ++i) {
-                StringBuilder binSeqNumber = new StringBuilder(Long.toBinaryString( Integer.toUnsignedLong(allPackets[i].getSequenceNumber()) | 0x100000000L ).substring(1));
-                StringBuilder binCheckSum = P2_Utils.getCheckSum(allPackets[i].getData());
-                StringBuilder padding = new StringBuilder("0101010101010101");
+                if(i == allPackets.length - 1) {
+                    allPackets[i].setHeader(new StringBuilder("0000000000000000000000000000000000000000000000000000000000000000"));
+                } else {
+                    StringBuilder binSeqNumber = new StringBuilder(Long.toBinaryString( Integer.toUnsignedLong(allPackets[i].getSequenceNumber()) | 0x100000000L ).substring(1));
+                    StringBuilder binCheckSum = P2_Utils.getCheckSum(allPackets[i].getData());
+                    StringBuilder padding = new StringBuilder("0101010101010101");
 
-                StringBuilder header = new StringBuilder();
-                header.append(binSeqNumber);
-                header.append(binCheckSum);
-                header.append(padding);
+                    StringBuilder header = new StringBuilder();
+                    header.append(binSeqNumber);
+                    header.append(binCheckSum);
+                    header.append(padding);
 
-                allPackets[i].setHeader(header);
-
+                    allPackets[i].setHeader(header);
+                }
             }
         }
     }
