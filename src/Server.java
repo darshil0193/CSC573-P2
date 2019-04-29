@@ -5,12 +5,14 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.Date;
 
 public class Server
 {
     public static void main(String[] args) throws IOException
     {
         File output_file;
+        FileOutputStream fp = null;
         Double probability;
         Integer port_number;
         if(args.length == 3) {
@@ -24,14 +26,19 @@ public class Server
             }
 
             if(output_file.exists()) {
-                if(output_file.delete()) {
-                    System.out.println("A file with same name already existed and hence deleted to create a new file");
+                if(!output_file.delete()) {
+                    System.out.println("Could not delete old output file with same name");
+                    return;
                 }
             }
 
-            if(output_file.createNewFile()) {
-                System.out.println("New file created");
+            if(!output_file.createNewFile()) {
+                System.out.println("Can not create new output file");
+                return;
+            } else {
+                fp = new FileOutputStream(output_file);
             }
+
 
             if(probability < 0 || probability > 1) {
                 System.out.println("Probability has to be between 0 and 1 (both including)");
@@ -42,9 +49,12 @@ public class Server
             return;
         }
 
+        final long startTime = System.nanoTime();
+
         // Step 1 : Create a socket to listen at port 7735
         DatagramSocket serverSocket = new DatagramSocket(7735);
         byte[] receive = new byte[65535];
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
         int nextExpectedSeqNumber = 0;
 
         DatagramPacket DpReceive = null;
@@ -72,9 +82,13 @@ public class Server
             Double r = Math.random();
 
             if(Integer.parseInt(receivedPadding, 2) == 0) {
+                out.writeTo(fp);
                 System.out.println("Terminating connection as instructed by client");
                 System.out.println("Total Packets lost: " + totalPacketsLost);
                 serverSocket.close();
+                final long duration = System.nanoTime() - startTime;
+                System.out.println("Server Time: " + duration/1000000000 + " s");
+                System.exit(0);
             }
 
             if(receivedSequenceNumber == lostPacketSeqNum) {
@@ -90,9 +104,10 @@ public class Server
             } else {
                 if(verifyReceivedData(receivedData, receivedCheckSum)) {
                     if(receivedPadding.equals("0101010101010101") && nextExpectedSeqNumber == receivedSequenceNumber) {
-                        saveDataToFile(receivedData, output_file);
+//                        saveDataToFile(receivedData, output_file);
                         sendACK(receivedSequenceNumber, clientIP, serverSocket, clientPort);
                         nextExpectedSeqNumber++;
+                        out.write(receivedData.getBytes());
                     } else {
 //                        System.out.println("Dropping Packet: " + receivedSequenceNumber);
                         continue;
